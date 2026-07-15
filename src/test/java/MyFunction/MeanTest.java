@@ -1,4 +1,4 @@
-package example;
+package MyFunction;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -10,20 +10,18 @@ import org.neo4j.driver.Session;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class LastTest {
+public class MeanTest {
 
     private Neo4j embeddedDatabaseServer;
 
     @BeforeAll
     void initializeNeo4j() {
-        this.embeddedDatabaseServer = Neo4jBuilders
-                .newInProcessBuilder()
+        this.embeddedDatabaseServer = Neo4jBuilders.newInProcessBuilder()
                 .withDisabledServer()
-                .withAggregationFunction(Last.class)
+                .withFunction(Mean.class)
                 .build();
     }
 
@@ -33,17 +31,16 @@ public class LastTest {
     }
 
     @Test
-    public void shouldAllowReturningTheLastValue() {
-
+    void joinsStrings() {
         // This is in a try-block, to make sure we close the driver after the test
         try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
             Session session = driver.session()) {
 
             // When
-            Long result = session.run( "UNWIND range(1,10) as value RETURN example.last(value) AS last").single().get("last").asLong();
+            String result = session.run( "RETURN example.join(['Hello', 'World']) AS result").single().get("result").asString();
 
             // Then
-            assertThat(result).isEqualTo( 10L );
+            assertThat( result).isEqualTo(( "Hello,World" ));
         }
     }
 }
