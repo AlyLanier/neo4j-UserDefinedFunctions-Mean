@@ -1,4 +1,4 @@
-package MyFunction;
+package TSM_Statistics;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -9,8 +9,11 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Session;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
+import java.util.List;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class MeanTest {
@@ -31,16 +34,28 @@ public class MeanTest {
     }
 
     @Test
-    void joinsStrings() {
+    void computeMeans() {
         // This is in a try-block, to make sure we close the driver after the test
         try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
             Session session = driver.session()) {
+            String query = """
+LET test1 = TSM_Statistics.mean([16, 6], 1)
+LET testm1 = TSM_Statistics.mean([2, 4, 4], -1)
+LET test2 = TSM_Statistics.mean([7, 1], 2)
+LET test0 = TSM_Statistics.mean([4, 9], 0)
+LET testpinf = TSM_Statistics.mean([7, -1, 18], '+inf')
+LET testminf = TSM_Statistics.mean([7, -1, 18], '-inf')
+
+RETURN testminf, testm1, test0, test1, test2, testpinf""";;
+            List<Double> expected_results = Arrays.asList(-1., 3., 6., 11., 5., 18.);
 
             // When
-            String result = session.run( "RETURN example.join(['Hello', 'World']) AS result").single().get("result").asString();
+            org.neo4j.driver.Record result = session.run(query).single();
 
             // Then
-            assertThat( result).isEqualTo(( "Hello,World" ));
+            for(int i = 0; i < expected_results.size(); i++){
+                assertThat(result.get(i)).isEqualTo(expected_results.get(i));
+            }
         }
     }
 }
