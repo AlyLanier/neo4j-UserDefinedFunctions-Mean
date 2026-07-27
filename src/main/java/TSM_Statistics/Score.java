@@ -1,8 +1,5 @@
 package TSM_Statistics;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -24,7 +21,8 @@ public class Score {
             @Name(value = "distance function name : 'affine', 'power', 'log', 'exp'", defaultValue = "x^2") String function_name,
             @Name("functions additional parameters :\naffine -> param[0]*x + param[1]\npower -> x^param[0]\nlog -> log_{param[0]}(x)") double ...parameters
         ) {
-        return score_function(values_sorted, basic_functions(function_name, parameters));
+        Function<Double, Double> func = basic_functions(function_name, parameters);
+        return x -> normalize_score_output(func, range, values_sorted).apply(score_function(values_sorted, func).apply(x));
     }
 
     @UserFunction
@@ -43,7 +41,8 @@ public class Score {
             @Name("values_taken, must be sorted") List<Double> values_sorted,
             @Name("if given, the range on which to normalize the score") List<Double> range
         ) {
-        return score_function(values_sorted, basic_functions());
+        Function<Double, Double> func = basic_functions();
+        return x -> normalize_score_output(func, range, values_sorted).apply(score_function(values_sorted, func).apply(x));
     }
 
     @UserFunction
@@ -54,21 +53,12 @@ public class Score {
         return score_function(values_sorted, basic_functions());
     }
 
+
+
+
+
     private Function<Double, Double> score_function(List<Double> values_sorted, Function<Double, Double> func) {
         return x -> func.apply(distance_from_closest_value(x, values_sorted));
-    }
-
-
-    private List<Double> get_distances(List<Double> range, List<Double> values_taken){
-        if(values_taken.isEmpty()) return Collections.emptyList();
-
-        List<Double> distances = Collections.singletonList(2*(values_taken.getFirst() - range.getFirst()));
-        for(int i = 0; i < values_taken.size() - 1; i++){
-            distances.add(values_taken.get(i+1) - values_taken.get(i));
-        }
-        distances.add(2*(range.getLast() - values_taken.getLast()));
-
-        return distances;
     }
 
     private double distance_from_closest_value(double x, List<Double> values_taken){
@@ -93,4 +83,26 @@ public class Score {
     private Function<Double, Double> basic_functions(){
         return x -> Math.pow(x, 2);
     }
+
+
+    private List<Double> get_distances(List<Double> range, List<Double> values_taken){
+        if(values_taken.isEmpty()) return Collections.emptyList();
+
+        List<Double> distances = Collections.singletonList(2*(values_taken.getFirst() - range.getFirst()));
+        for(int i = 0; i < values_taken.size() - 1; i++){
+            distances.add(values_taken.get(i+1) - values_taken.get(i));
+        }
+        distances.add(2*(range.getLast() - values_taken.getLast()));
+
+        return distances;
+    }
+
+    private Function<Double, Double> normalize_score_output(Function<Double, Double> func, List<Double> range, List<Double> values_taken){
+        double min_value = func.apply(0.);
+        double max_val = func.apply(get_distances(range, values_taken).stream().map(x -> x/2).max(Double::compareTo).orElse(0.));
+
+        return x -> (x - min_value)/(max_val - min_value);
+    }
+
+
 }
