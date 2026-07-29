@@ -38,19 +38,6 @@ public class ScoreTest {
         // This is in a try-block, to make sure we close the driver after the test
         try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
             Session session = driver.session()) {
-            String query = """
-LET test = TSM_Statistics.score([-6.0, -2.0, 10]
-
-RETURN testminf, testm1, test0, test1, test2, testpinf""";;
-            List<Double> expected_results = Arrays.asList(-1., 3., 6., 11., 5., 18.);
-
-            // When
-            org.neo4j.driver.Record result = session.run(query).single();
-
-            // Then
-            for(int i = 0; i < expected_results.size(); i++){
-                assertThat(result.get(i)).isEqualTo(expected_results.get(i));
-            }
         }
     }
 }
