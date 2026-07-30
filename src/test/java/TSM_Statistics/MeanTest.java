@@ -35,19 +35,21 @@ public class MeanTest {
 
     @Test
     void computeMeans() {
-        /*LET testpinf = TSM_Statistics.mean([7, -1, 18], '+inf')testpinf
-LET testminf = TSM_Statistics.mean([7, -1, 18], '-inf')testminf, 
+        /*LET testpinf = 
+LET testminf =  
  */
         // This is in a try-block, to make sure we close the driver after the test
-        try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
-            Session session = driver.session()) {
+        try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI()); Session session = driver.session()) {
             String query = """
-CYPHER 5
-WITH TSM_Statistics.mean([16, 6], 1) as test1, TSM_Statistics.mean([2, 4, 4], -1) as testm1, TSM_Statistics.mean([7, 1], 2) as test2, TSM_Statistics.mean([4, 9], 0) as test0
+WITH TSM_Statistics.mean([7, -1, 18], "-inf") as testminf,
+TSM_Statistics.mean([2, 4, 4], -1) as testm1, 
+TSM_Statistics.mean([4, 9], 0) as test0, 
+TSM_Statistics.mean([16, 6], 1) as test1, 
+TSM_Statistics.mean([7, 1], 2) as test2,
+TSM_Statistics.mean([7, -1, 18], "+inf") as testpinf
 
-RETURN testm1, test0, test1, test2 """;;
-            //List<Double> expected_results = Arrays.asList(-1., 3., 6., 11., 5., 18.);
-            List<Double> expected_results = Arrays.asList(3., 6., 11., 5.);
+RETURN testminf, testm1, test0, test1, test2, testpinf """;;
+            List<Double> expected_results = Arrays.asList(-1., 3., 6., 11., 5., 18.);
 
             // When
             org.neo4j.driver.Record result = session.run(query).single();

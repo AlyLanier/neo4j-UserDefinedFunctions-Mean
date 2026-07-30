@@ -36,8 +36,27 @@ public class ScoreTest {
     @Test
     void computeScore() {
         // This is in a try-block, to make sure we close the driver after the test
-        try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
-            Session session = driver.session()) {
+        try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI()); Session session = driver.session()) {
+            String query ="""
+                WITH TSM_Statistics.score(0, [-1, 1], [-2, 2]) as easy_test,
+                TSM_Statistics.score(0.5, [-1, 1], [-2, 2]) as easy_test2,
+                TSM_Statistics.score(.5 , [-1.5, 1], [-2, 2]) as easy_test3
+                RETURN easy_test, easy_test2, easy_test3
+                """;
+            
+            List<Double> expected_results = Arrays.asList(1., .25, .16);
+
+            // When
+            org.neo4j.driver.Record result = session.run(query).single();
+
+            // Then
+            for(int i = 0; i < expected_results.size(); i++){
+                assertThat(result.get(i).asDouble()).isExactlyInstanceOf(Double.class);
+                assertThat(expected_results.get(i)).isExactlyInstanceOf(Double.class);
+                assertThat(result.get(i).asDouble()).isEqualTo(expected_results.get(i));
+            }
+
+            
         }
     }
 }
