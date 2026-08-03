@@ -18,10 +18,13 @@ public class Mean {
         @Name("values") List<Double> values,
         @Name(value = "order", defaultValue = "-1") Object order
     ) throws Exception {
-        try{}catch(Exception e){}//TODO
-        if (order instanceof Double){return mean(values, (double) order);}
-        else if(order instanceof String){return mean(values, (String) order);}
-        else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf', was %d of type %s", order, order.getClass()));} 
+        try{
+            double exponent = ((Number) order).doubleValue();
+            return mean(values, exponent);
+        }catch(Exception e){
+            if(order instanceof String){return mean(values, (String) order);}
+            else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf', was %d of type %s", order, order.getClass()));}
+        }
     }
 
     private double mean(List<Double> values, double order) {

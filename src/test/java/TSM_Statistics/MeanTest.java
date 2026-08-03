@@ -35,9 +35,7 @@ public class MeanTest {
 
     @Test
     void computeMeans() {
-        /*LET testpinf = 
-LET testminf =  
- */
+        
         // This is in a try-block, to make sure we close the driver after the test
         try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI()); Session session = driver.session()) {
             String query = """
