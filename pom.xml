@@ -3,9 +3,9 @@
                       http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.neo4j.example</groupId>
-  <artifactId>procedure-template</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <groupId>alyssia</groupId>
+  <artifactId>TSM-statistics</artifactId>
+  <version>1.0.0</version>
 
   <packaging>jar</packaging>
   <name>Neo4j Procedure Template</name>
