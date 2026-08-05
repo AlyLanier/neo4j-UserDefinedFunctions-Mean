@@ -32,14 +32,3 @@ jobs:
 
       - name: 'Clean and verify'
         run: ./mvnw --no-transfer-progress clean verify
-      
-  build-jar:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-      
-      - name: launch test
-        run: ./mvnw clean package
-  
