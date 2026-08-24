@@ -32,3 +32,10 @@ jobs:
 
       - name: 'Clean and verify'
         run: ./mvnw --no-transfer-progress clean verify
+      
+      - name: 'target verifier'
+        run: |
+          ls
+      
+      - name: Upload jar
+        run: mkdir staging && cp target/sumpdata-*.jar staging
