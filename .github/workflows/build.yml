@@ -34,9 +34,7 @@ jobs:
         run: ./mvnw --no-transfer-progress clean verify
       
       - name: 'print'
-        run: |
-          ls ${{github.workspace}}
-          ls ${{github.workspace}}/target
+        run: ls ${{github.workspace}}/target
       
       - name: 'package'
         run: mvn --no-transfer-progress clean package
