@@ -33,8 +33,11 @@ jobs:
       - name: 'Clean and verify'
         run: ./mvnw --no-transfer-progress clean verify
       
-      - name: 'print'
-        run: ls ${{github.workspace}}/target
+      - name: 'publish JAR'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'test_jar.jar'
+          path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
       
-      - name: 'package'
-        run: mvn --no-transfer-progress clean package
+      - name: 'test print'
+        run: ls ${{github.workspace}}/target 
