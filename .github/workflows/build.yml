@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
 
       - name: 'Checkout'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: 'Clean and verify'
         run: ./mvnw --no-transfer-progress clean verify
@@ -36,8 +36,5 @@ jobs:
       - name: 'publish JAR'
         uses: actions/upload-artifact@v4
         with:
-          name: 'test_jar.jar'
+          name: 'neo4j_user_plugins'
           path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
-      
-      - name: 'test print'
-        run: ls ${{github.workspace}}/target 
