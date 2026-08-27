@@ -30,8 +30,8 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v6
 
-      - name: 'Clean and verify'
-        run: ./mvnw --no-transfer-progress clean build
+      - name: 'Clean and build package'
+        run: ./mvnw --no-transfer-progress clean package
       
       - name: 'publish JAR'
         uses: actions/upload-artifact@v4
