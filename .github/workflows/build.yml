@@ -38,3 +38,15 @@ jobs:
         with:
           name: 'neo4j_user_plugins'
           path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
+      
+      - name: Trigger automation tests
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.UPDATE_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+            owner: 'AlyLanier',
+            repo: 'neo4j2graph',
+            workflow_id: 'update-neo4j-plugins.yml',
+            ref: 'CI_submodule_artifact_downloading'
+            })
