@@ -28,7 +28,25 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
 
       - name: 'Checkout'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
-      - name: 'Clean and verify'
-        run: ./mvnw --no-transfer-progress clean verify
+      - name: 'Clean and build package'
+        run: ./mvnw --no-transfer-progress clean package
+      
+      - name: 'publish JAR'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'neo4j_user_plugins'
+          path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
+      
+      - name: Trigger automation tests
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.UPDATE_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+            owner: 'AlyLanier',
+            repo: 'neo4j2graph',
+            workflow_id: 'update-neo4j-plugins.yml',
+            ref: 'CI_submodule_artifact_downloading'
+            })
