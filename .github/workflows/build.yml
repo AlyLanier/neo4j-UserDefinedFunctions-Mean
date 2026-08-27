@@ -7,9 +7,7 @@ on:
       - 2025.x
     paths-ignore:
       - 'README.adoc'
-  pull_request:
-    paths-ignore:
-      - 'README.adoc'
+      - '**.yml'
 
 jobs:
   build:
@@ -39,7 +37,7 @@ jobs:
           name: 'neo4j_user_plugins'
           path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
       
-  notify-repository-a:
+  notify-panoramix:
     needs: build
     if: ${{ needs.build.result == 'success' }}
     runs-on: ubuntu-latest
