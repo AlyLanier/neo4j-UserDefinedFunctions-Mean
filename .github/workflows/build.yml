@@ -39,14 +39,17 @@ jobs:
           name: 'neo4j_user_plugins'
           path: ${{github.workspace}}/target/TSM-statistics-1.0.0.jar
       
-      - name: Trigger automation tests
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.UPDATE_TOKEN }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-            owner: 'AlyLanier',
-            repo: 'neo4j2graph',
-            workflow_id: 'update-neo4j-plugins.yml',
-            ref: 'CI_submodule_artifact_downloading'
-            })
+  notify-repository-a:
+    needs: build
+    if: ${{ needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Panoramix
+        env:
+          GH_TOKEN: ${{ secrets.UPDATE_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            /repos/AlyLanier/neo4j2graph/dispatches \
+            -f event_type='new-jar-file-uploaded'
