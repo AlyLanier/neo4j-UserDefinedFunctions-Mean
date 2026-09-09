@@ -13,17 +13,17 @@ import org.neo4j.procedure.UserFunction;
 public class Mean {
 
     @UserFunction
-    @Description("TSM_Statistics.mean(values, order) returns the function to compute powerMean of the input values.")
+    @Description("TSM_Statistics.mean(values, order) returns the PowerMean of the input values with respect to the power 'pow'.")
     public double mean(
         @Name("values") List<Double> values,
-        @Name(value = "order", defaultValue = "-1") Object order
+        @Name(value = "pow", defaultValue = "-1") Object order
     ) throws Exception {
         try{
             double exponent = ((Number) order).doubleValue();
             return mean(values, exponent);
         }catch(Exception e){
             if(order instanceof String){return mean(values, (String) order);}
-            else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf', was %d of type %s", order, order.getClass()));}
+            else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf'; was %d of type %s", order, order.getClass()));}
         }
     }
 
