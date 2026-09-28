@@ -398,7 +398,7 @@ public class Hull {
        
 
     
-    private void addSubfunction(Parameters parameters) throws Exception{
+    public void addSubfunction(Parameters parameters) throws Exception{
         Parameters parameter = Hull.sanitizeParameters(parameters);
         double a = parameter.slope, b = this.scale(parameter.xIntercept);
 
@@ -515,7 +515,7 @@ public class Hull {
         return result;
     }
 
-    public double scoreOfNewCurbTest(Parameters parameters) throws Exception{
+    public double scoreOfNewCurb(Parameters parameters) throws Exception{
         Map<Parameters, Map<Segment, Double>> previousIntegralBySegment = this.computeIntegralBySegment(this.getRange());
         Map<Segment, Double> segmentIntegrals = Hull.segmentToIntegral(previousIntegralBySegment);
 
