@@ -39,25 +39,25 @@ public class Neo4jToStringTest {
         // This is in a try-block, to make sure we close the driver after the test
         try(Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI()); Session session = driver.session()) {
             String query = """
-CREATE (n:TestLabel:TestLabel2 {firstproperty: 'hello world', secondproperty: 0, thirdproperty: 42.69})-[rel:LAB {is_useful: FALSE}]->(m:otherLabel)
+CREATE (n:TestLabel:Test2 {firstproperty: 'hello world', secondproperty: 0, thirdproperty: 42.69})-[rel:LAB {is_useful: FALSE}]->(m:otherLabel)
 WITH n, rel, m
 MATCH p = (n)-[rel]->(m)
 WITH TSM_Statistics.toString(n) as n, TSM_Statistics.toString(m) as m, TSM_Statistics.toString(rel) as rel, TSM_Statistics.toString(p) as p
 RETURN n, m, rel, p""";;
+
             List<String> expected_results = Arrays.asList(
-                "(:TestLabel:TestLabel2 {firstproperty: 'hello world', secondproperty: 0, thirdproperty: 42.69})", 
-                "(:otherLabel)", 
-                "[:LAB {is_useful: FALSE}]", 
-                "(:TestLabel:TestLabel2 {firstproperty: 'hello world', secondproperty: 0, thirdproperty: 42.69})-[:LAB {is_useful: FALSE}]->(:otherLabel)");
+                "\\((:TestLabel:Test2|:Test2:TestLabel)\\s\\{(?=[^{}]*\\bfirstproperty\\b:\\s'hello world')(?=[^{}]*\\bsecondproperty\\b:\\s0(?![\\d.]))(?=[^{}]*\\bthirdproperty\\b:\\s42\\.69(?![\\d.]))(?=(?:[^{},]*,){2}[^{},]*\\})[^{}]*\\}\\)",
+                "\\(:otherLabel\\)", 
+                "\\[:LAB \\{is_useful: false\\}\\]", 
+                "\\((:TestLabel:Test2|:Test2:TestLabel)\\s\\{(?=[^{}]*\\bfirstproperty\\b:\\s'hello world')(?=[^{}]*\\bsecondproperty\\b:\\s0(?![\\d.]))(?=[^{}]*\\bthirdproperty\\b:\\s42\\.69(?![\\d.]))(?=(?:[^{},]*,){2}[^{},]*\\})[^{}]*\\}\\)-\\[:LAB \\{is_useful: false\\}\\]->\\(:otherLabel\\)");
 
             // When
             org.neo4j.driver.Record result = session.run(query).single();
 
             // Then
             for(int i = 0; i < expected_results.size(); i++){
-                assertThat(result.get(i)).isExactlyInstanceOf(String.class);
-                assertThat(expected_results.get(i)).isExactlyInstanceOf(String.class);
-                assertThat(result.get(i)).isEqualTo(expected_results.get(i));
+                assertThat(result.get(i).asString()).isExactlyInstanceOf(String.class);
+                assertThat(result.get(i).asString()).matches(expected_results.get(i));
             }
         }
     }
