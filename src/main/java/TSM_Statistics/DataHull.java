@@ -1,5 +1,6 @@
 package TSM_Statistics;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import TSM_Statistics.Hull.HullBuilder;
 
 public class DataHull {
     public static Map<String, Function<Double, Double>> SCALER = Map.of("linear", x -> x, "log", x -> Math.log10(x));
+    public static Map<String, Function<Double, Double>> UNSCALER = Map.of("linear", x -> x, "log", x -> Math.pow(10., x));
 
     private Map<Double, Double> valuesToOccurrences;
     private String scale;
@@ -23,7 +25,7 @@ public class DataHull {
         else{this.scale = this.scaleDecider(options);}
 
         List<Parameters> curvesToAdd = options.entrySet().stream().map(x -> new Parameters(1./x.getValue(), x.getKey())).toList();
-        Segment functionRange = new Segment(range.getFirst(), range.getLast());
+        Segment functionRange = new Segment(this.scaling(range.getFirst()), this.scaling(range.getLast()));
 
 
         HullBuilder builder = new HullBuilder().curvesToAdd(curvesToAdd).functionRange(functionRange).distanceFunction(referenceFunction)
@@ -48,7 +50,7 @@ public class DataHull {
         if(options.containsKey(value)){options.put(value, options.get(value) + occurrences);} 
         else{options.put(value, occurrences);}
 
-        this.getHull().addSubfunction(new Parameters(1./occurrences, value));
+        this.getHull().addSubfunction(new Parameters(1./options.get(value), value));
     }
 
     public String scaleDecider(Map<Double, Double> options){ // TODO
@@ -60,6 +62,8 @@ public class DataHull {
     }
         
     public double scaling(Double v){return DataHull.SCALER.get(this.getScale()).apply(v);}
+    public double unscaling(Double v){return DataHull.UNSCALER.get(this.getScale()).apply(v);}
+
     public static Function<Double, Double> normalizeScore(List<Double> liste){
         switch (liste.size()) {
             case 0:
@@ -69,34 +73,38 @@ public class DataHull {
             default:
                 double minValue = liste.stream().min(Double::compareTo).orElse(null);
                 double maxValue = liste.stream().max(Double::compareTo).orElse(null);
+                if(minValue == maxValue){return x -> 1.0;}
                 return x -> (x - minValue)/(maxValue - minValue);
         } 
     }
 
     private List<Double> linSpace(double start, double end, double nbpoints){
-        List<Double> ret = Arrays.asList();
-        Double step = (end-start)/(nbpoints-1);
-        for(int i = 0; i < nbpoints; i++){
-            ret.add(start + step*i);
+        List<Double> ret = new ArrayList<>();
+        int n = (int) nbpoints;
+        if(n < 1){return ret;}
+        if(n == 1){ret.add(start);return ret;}
+        double step = (end-start)/(nbpoints-1);
+        for(int i = 0; i < n; i++){
+            ret.add(i == n - 1 ? end : start + step*i);
         }
         return ret;
     }
         
-    public List<List<Double>> generateData(Double nbpoints) throws Exception{
+    public List<List<Double>> generateData(double nbpoints) throws Exception{
         Hull hull = this.getHull();
         List<Double> x = linSpace(hull.getRange().getStart(), hull.getRange().getEnd(), nbpoints);
 
         List<Double> values = hull.getValues();
         Map<Double, Double> options = this.getOptions();
         
-        List<List<Double>> newValuesScore = Arrays.asList();
+        List<List<Double>> newValuesScore = new ArrayList<>();
         for(double v : x){
-            if(!values.contains(v)) newValuesScore.add(Arrays.asList(v, hull.scoreOfNewCurb(new Parameters(1., v))));
+            if(!values.contains(v)) newValuesScore.add(Arrays.asList(v, hull.scoreOfNewCurb(new Parameters(1., this.unscaling(v)))));
         }
             
-        List<List<Double>> oldValuesScore = Arrays.asList();
+        List<List<Double>> oldValuesScore = new ArrayList<>();
         for(Map.Entry<Double, Double> entry : options.entrySet()){
-            oldValuesScore.add(Arrays.asList(this.scaling(entry.getKey()), hull.scoreOfNewCurb(new Parameters(1./(entry.getValue() + 1), this.scaling(entry.getKey())))));
+            oldValuesScore.add(Arrays.asList(this.scaling(entry.getKey()), hull.scoreOfNewCurb(new Parameters(1./(entry.getValue() + 1), entry.getKey()))));
         }
         
         List<List<Double>> valuesScore = Stream.concat(newValuesScore.stream(), oldValuesScore.stream()).toList();

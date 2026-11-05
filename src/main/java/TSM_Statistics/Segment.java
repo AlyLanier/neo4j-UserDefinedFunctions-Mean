@@ -4,11 +4,11 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Segment {
-    private Double start;
-    private Double end;
+    private double start;
+    private double end;
 
-    public Segment(Double start, Double end){
-        if(start >= end){throw new ExceptionInInitializerError("start must be smaller than end");}
+    public Segment(double start, double end){
+        if(start >= end){throw new IllegalArgumentException("start must be smaller than end");}
         this.start = start;
         this.end = end;
     }
@@ -17,18 +17,21 @@ public class Segment {
         return getStart() <= s.getStart() && s.getEnd() <= getEnd();
     }
 
-    public boolean contains(Double d){
-        return getStart() <= d && d <= getEnd();
+    public boolean contains(double d){
+        return (getStart() <= d) && d <= getEnd();
     }
 
     @Override
     public String toString(){
-        return String.format("[]%d, %d[]", getStart(), getEnd());
+        return String.format("]%s, %s[", getStart(), getEnd());
     }
 
     @Override
     public boolean equals(Object obj){
-        return this == obj || obj.getClass() == this.getClass() && ((Segment) obj).getStart() == getStart() && ((Segment) obj).getEnd() == getEnd();
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Segment other = (Segment) obj;
+        return getStart() == other.getStart() && getEnd() == other.getEnd();
     }
 
     @Override
@@ -40,19 +43,19 @@ public class Segment {
         return new Segment(getStart(), getEnd());
     }
 
-    public Double getStart(){
+    public double getStart(){
         return start;
     }
 
-    public Double getEnd(){
+    public double getEnd(){
         return end;
     }
 
-    public void setStart(Double d){
+    public void setStart(double d){
         this.start = d;
     }
 
-    public void setEnd(Double d){
+    public void setEnd(double d){
         this.end = d;
     }
 

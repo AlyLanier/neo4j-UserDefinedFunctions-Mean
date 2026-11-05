@@ -1,17 +1,15 @@
 package TSM_Statistics;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-
 
 public class Hull {
     private Map<Parameters, List<Segment>> subfunctionsToSegments;
@@ -23,13 +21,13 @@ public class Hull {
     public Hull(List<Parameters> curvesToAdd, Segment range, Function<Double, Double> referenceFunction, 
         Function<Double, Function<Double, Double>> primitivFunction, Function<Double, Double> dataScale) throws Exception{
             
-            this.subfunctionsToSegments = Collections.emptyMap();
+            this.subfunctionsToSegments = new HashMap<>();
             this.functionRange = range;
             this.referenceFunction = referenceFunction;
             this.primitiveFunction = primitivFunction;
             this.dataScale = dataScale;
 
-            if(this.getRange() == null){
+            if(this.getRange() == null && curvesToAdd != null){
                 if(curvesToAdd.size() > 1){
                     Stream<Double> valuesToAdd = curvesToAdd.stream().map(x -> x.xIntercept);
                     this.setRange(new Segment(this.scale(valuesToAdd.min(Double::compareTo).orElseThrow()), this.scale(valuesToAdd.max(Double::compareTo).orElseThrow())));
@@ -44,8 +42,10 @@ public class Hull {
                 }
             }
             
-            for(Parameters params: curvesToAdd){
-                this.addSubfunction(params);
+            if(curvesToAdd != null){
+                for(Parameters params: curvesToAdd){
+                    this.addSubfunction(params);
+                }
             }
 
             this.verifyValidity();
@@ -96,7 +96,7 @@ public class Hull {
         for (Map.Entry<Parameters, List<Segment>> entry : this.getSubfunctionSegments().entrySet()) {
             System.out.println("  " + entry.getKey() + "=" + entry.getValue());
         }
-        System.out.println("{");
+        System.out.println("}");
     }
 
     /* Callers */
@@ -171,16 +171,15 @@ public class Hull {
         sorted.sort(Comparator.comparingDouble(Segment::getStart));
 
         Segment range = this.getRange();
-        if(!sorted.isEmpty() && range != null &&(range.getStart() != sorted.get(0).getStart() || range.getEnd() != sorted.get(sorted.size()-1).getEnd())){
+        if(!sorted.isEmpty() && range != null &&(range.getStart() != sorted.getFirst().getStart() || range.getEnd() != sorted.getLast().getEnd())){
             throw new RuntimeException("the function must be defined on its entire range, ends do not match");
         }
 
         for (int i = 0; i < sorted.size() - 1; i++) {
             if (sorted.get(i).getEnd() != sorted.get(i + 1).getStart()) {
-                throw new RuntimeException("the function should be defined on the total range it takes values in");
+                throw new RuntimeException(String.format("the function should be defined on the total range it takes values in: %s", this));
             }
         }
-
     }
 
     private void verifyValidity(){
@@ -205,10 +204,10 @@ public class Hull {
         Parameters params, 
         Segment segment, 
         Intersection intersect){
-            usefulIntersections.computeIfAbsent(params, x -> new HashMap<>())
+            usefulIntersections.computeIfAbsent(params, x -> new LinkedHashMap<>())
                            .computeIfAbsent(segment, x -> new ArrayList<>())
                            .add(intersect);
-        }
+    }
         
     private static List<Double> allIntersections(Map<Parameters, Map<Segment, List<Intersection>>> usefulIntersections){
         return usefulIntersections.values().stream().flatMap(segmentMap -> segmentMap.values().stream())
@@ -286,7 +285,7 @@ public class Hull {
         List<Parameters> leftCurbsParams = getKeys.stream().filter(x -> x.xIntercept < b).sorted(Comparator.comparingDouble((Parameters params) -> params.xIntercept).reversed()).toList();
         List<Parameters> rightCurbsParams = getKeys.stream().filter(x -> x.xIntercept > b).sorted(Comparator.comparingDouble((Parameters params) -> params.xIntercept)).toList();
         
-        Map<Parameters, Map<Segment, List<Intersection>>> usefulIntersections = new HashMap<>();
+        Map<Parameters, Map<Segment, List<Intersection>>> usefulIntersections = new LinkedHashMap<>();
         List<Parameters> consideredCurbs = new ArrayList<>();
 
         this.processIntersections(parameters, leftCurbsParams, usefulIntersections, consideredCurbs, Hull::skipIntersectionConditionLeft);
@@ -308,8 +307,9 @@ public class Hull {
             Map<Segment, List<Intersection>> segmentMap = usefulIntersections.get(params);
             c = params.slope; d = params.xIntercept;
 
-            for (Segment segment : segmentMap.keySet()) {    
-                intersects = segmentMap.get(segment);
+            for (Map.Entry<Segment, List<Intersection>> segmentEntry : segmentMap.entrySet()) {    
+                Segment segment = segmentEntry.getKey();
+                intersects = segmentEntry.getValue();
 
                 if (intersects.size() == 1) {
                     inter = intersects.get(0);
@@ -348,7 +348,7 @@ public class Hull {
                                
     private List<List<Double>> processNewSegments(Parameters parameters, List<Double> allIntersections) {
         double b = parameters.xIntercept;
-        List<Segment> segments = Arrays.asList();
+        List<Segment> segments = new ArrayList<>();
 
         Double valueToRemember;
         if(allIntersections.stream().filter(x -> x < b).toList().size() % 2 == 0){
@@ -375,7 +375,7 @@ public class Hull {
     
     
     private void deleteSuperfluousSegments(List<Parameters> curbs, List<List<Double>> newSegments){
-        List<List<Object>> segmentsToDelete = Arrays.asList();
+        List<List<Object>> segmentsToDelete = new ArrayList<>();
         double start, end;
         for(Parameters curb : curbs){
             for(Segment segment : this.getSubfunctionSegments().get(curb)){
@@ -479,7 +479,7 @@ public class Hull {
         double a, b;
         Function<Double, Double> partial;
         List<Segment> segments;
-        Map<Parameters, Map<Segment, Double>> integrals = Collections.emptyMap();
+        Map<Parameters, Map<Segment, Double>> integrals = new HashMap<>();
 
 
         for(Map.Entry<Parameters, List<Segment>> entry : this.getSubfunctionSegments().entrySet()){
@@ -487,7 +487,7 @@ public class Hull {
             a = entry.getKey().slope; b = entry.getKey().xIntercept;
             segments = entry.getValue();
             partial = primitive.apply(a);
-            integrals.put(params, Collections.emptyMap());
+            integrals.put(params, new HashMap<>());
 
             for(Segment segment : segments){
                 if(onRange.contains(segment)){
@@ -506,7 +506,7 @@ public class Hull {
     /* score computation */
 
     private static Map<Segment, Double> segmentToIntegral(Map<Parameters, Map<Segment, Double>> previousIntegralSegments){
-        Map<Segment, Double> result = Collections.emptyMap();
+        Map<Segment, Double> result = new HashMap<>();
         for(Map<Segment, Double> segToIntegral: previousIntegralSegments.values()){
             for(Map.Entry<Segment, Double> entry : segToIntegral.entrySet()){
                 result.put(entry.getKey(), entry.getValue());
@@ -522,8 +522,8 @@ public class Hull {
         Hull hull = this.copy();
         hull.addSubfunction(parameters);
 
-        List<Segment> segmentsToCompute = Arrays.asList();
-        List<Segment> segmentsComputed = Arrays.asList();
+        List<Segment> segmentsToCompute = new ArrayList<>();
+        List<Segment> segmentsComputed = new ArrayList<>();
         Parameters params;
         List<Segment> segments;
 
@@ -544,9 +544,8 @@ public class Hull {
             }
         }
 
-
         List<Double> oldComputedSegments = segmentsComputed.stream().map(x -> segmentIntegrals.get(x)).toList();
-        List<Double> newComputedSegments = Arrays.asList();
+        List<Double> newComputedSegments = new ArrayList<>();
         for(Segment segment: segmentsToCompute){
             newComputedSegments.add(hull.computeIntegral(segment));
         }
@@ -566,7 +565,7 @@ public class Hull {
     }
         
     public static class HullBuilder {
-        private List<Parameters> curves = Arrays.asList();
+        private List<Parameters> curves = new ArrayList<>();
         private Segment range = null;
         private Function<Double, Double> referenceFunction = null;
         private Function<Double, Function<Double, Double>> primitivFunction = null;
