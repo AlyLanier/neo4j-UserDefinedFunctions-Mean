@@ -2,7 +2,6 @@ neo4j-home
 *~
 \#*
 target/**
-!target/TSM-statistics-*
 out
 .project
 .classpath
