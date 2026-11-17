@@ -38,7 +38,10 @@ public class ScoreFunctions {
             }
             double value = pair.get(0);
             double occurrences = pair.get(1);
-            if (occurrences <= 0.) {
+
+            if (occurrences == 0.0) {
+                pp("WARNING : occurrence of 0 for value " + value);
+            }else if (occurrences < 0.0){
                 throw new IllegalArgumentException("occurrences must be positive for value " + value);
             }
             options.merge(value, occurrences, Double::sum);
@@ -96,11 +99,11 @@ public class ScoreFunctions {
         }
     }
 
-    /*static void pp(Object o){
+    static void pp(Object o){
         System.out.println(o);
     }
 
-    public static void main(String args[]){
+    /*public static void main(String args[]){
         List<List<Double>> data = Arrays.asList(Arrays.asList(1.0e-60, 1.0), Arrays.asList(1.0e-12, 1.0));
         List<List<Double>> data2 = Arrays.asList(Arrays.asList(1.0e-60, 1.0), Arrays.asList(1.0e-12, 2.0));
         List<Double> rng = Arrays.asList(1.0e-110, 1.0);

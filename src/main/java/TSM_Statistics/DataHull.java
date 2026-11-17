@@ -24,7 +24,7 @@ public class DataHull {
         if(dataScale != null && DataHull.SCALER.containsKey(dataScale)){this.scale = dataScale;}
         else{this.scale = this.scaleDecider(options);}
 
-        List<Parameters> curvesToAdd = options.entrySet().stream().map(x -> new Parameters(1./x.getValue(), x.getKey())).toList();
+        List<Parameters> curvesToAdd = options.entrySet().stream().filter(x -> x.getValue() >= 1.).map(x -> new Parameters(1./x.getValue(), x.getKey())).toList();
         Segment functionRange = new Segment(this.scaling(range.getFirst()), this.scaling(range.getLast()));
 
 

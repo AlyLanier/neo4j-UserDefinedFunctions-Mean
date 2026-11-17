@@ -241,7 +241,7 @@ RETURN TSM_Statistics.scoreOfNewValue(5.0, [[1.0, 1.0], [3.0, 1.0]], [0.0, 4.0])
         try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
              Session session = driver.session()) {
             assertThatThrownBy(() -> session.run("""
-RETURN TSM_Statistics.scoreOfNewValue(2.0, [[1.0, 0.0], [3.0, 1.0]], [0.0, 4.0]) AS score""").single())
+RETURN TSM_Statistics.scoreOfNewValue(2.0, [[1.0, -1.0], [3.0, 1.0]], [0.0, 4.0]) AS score""").single())
                     .isInstanceOf(Neo4jException.class)
                     .hasMessageContaining("occurrences must be positive");
         }
