@@ -23,7 +23,7 @@ public class Mean {
             return mean(values, exponent);
         }catch(Exception e){
             if(order instanceof String){return mean(values, (String) order);}
-            else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf'; was %d of type %s", order, order.getClass()));}
+            else{throw new Exception(String.format("'order' parameter must be a Double, '-inf' or '+inf'; was %s of type %s", order, order.getClass()));}
         }
     }
 
