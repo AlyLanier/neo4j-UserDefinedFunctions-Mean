@@ -160,6 +160,30 @@ RETURN TSM_Statistics.generateScores(3, data, rng, 'log') AS curve""";
     }
 
     @Test
+    void handlesDisconnectedEnvelopeRegions() {
+        try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
+            Session session = driver.session()) {
+            String query = """
+WITH [[1e-60, 1.0], [1e-12, 1.0]] AS data, [1e-110, 1.0] AS rng
+RETURN TSM_Statistics.scoreOfNewValue(1e-12, data, rng, 'log') AS score""";
+            assertThat(session.run(query).single().get("score").asDouble())
+                    .isCloseTo(137426. / 154376., within(TOLERANCE));
+        }
+    }
+
+    @Test
+    void buildsMixedOccurrenceHullWithThreeCurbs() {
+        try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
+            Session session = driver.session()) {
+            String query = """
+WITH [[1e-60, 1.0], [1e-12, 2.0]] AS data, [1e-110, 1.0] AS rng
+RETURN TSM_Statistics.scoreOfNewValue(1e-30, data, rng, 'log') AS score""";
+            assertThat(session.run(query).single().get("score").asDouble())
+                    .isCloseTo(132536. / 137426., within(TOLERANCE));
+        }
+    }
+
+    @Test
     void generateScoresWithSinglePoint() {
         try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
              Session session = driver.session()) {

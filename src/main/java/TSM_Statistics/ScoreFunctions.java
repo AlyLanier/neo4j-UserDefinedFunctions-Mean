@@ -1,5 +1,6 @@
 package TSM_Statistics;
 
+//import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,4 +95,18 @@ public class ScoreFunctions {
             throw new RuntimeException("score generation failed: " + e.getMessage(), e);
         }
     }
+
+    /*static void pp(Object o){
+        System.out.println(o);
+    }
+
+    public static void main(String args[]){
+        List<List<Double>> data = Arrays.asList(Arrays.asList(1.0e-60, 1.0), Arrays.asList(1.0e-12, 1.0));
+        List<List<Double>> data2 = Arrays.asList(Arrays.asList(1.0e-60, 1.0), Arrays.asList(1.0e-12, 2.0));
+        List<Double> rng = Arrays.asList(1.0e-110, 1.0);
+        pp(dataHullOf(data, rng, "log", 2L).getHull().toString());
+        pp(dataHullOf(data2, rng, "log", 2L).getHull().toString());
+        pp(scoreOfNewValue(1.0e-12, data, rng, "log", 2L));
+    }*/
+    
 }

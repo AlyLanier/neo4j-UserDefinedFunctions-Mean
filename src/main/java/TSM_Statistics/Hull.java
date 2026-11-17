@@ -211,7 +211,7 @@ public class Hull {
         
     private static List<Double> allIntersections(Map<Parameters, Map<Segment, List<Intersection>>> usefulIntersections){
         return usefulIntersections.values().stream().flatMap(segmentMap -> segmentMap.values().stream())
-            .flatMap(List::stream).map(x -> x.value).toList();
+            .flatMap(List::stream).map(x -> x.value).sorted().toList();
     }
         
     private static List<Double> intersectionPoints(Parameters g, Parameters h){

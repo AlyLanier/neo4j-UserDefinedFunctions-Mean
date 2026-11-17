@@ -8,7 +8,7 @@ public class Segment {
     private double end;
 
     public Segment(double start, double end){
-        if(start >= end){throw new IllegalArgumentException("start must be smaller than end");}
+        if(start >= end){throw new IllegalArgumentException(String.format("start = %f must be smaller than end = %f", start, end));}
         this.start = start;
         this.end = end;
     }
