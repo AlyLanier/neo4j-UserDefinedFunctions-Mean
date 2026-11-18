@@ -159,27 +159,109 @@ RETURN TSM_Statistics.generateScores(3, data, rng, 'log') AS curve""";
         }
     }
 
+    /*
+     * Log scale with very small values: 1e-60, 1e-59 and 1e-58 are exact decades, so
+     * log10 maps them to exactly -60.0, -59.0, -58.0 (the ~1e-16 representation error of
+     * the literal is ~5e-17 in the log, far below one ulp of 60). The hull is shift-
+     * invariant in scaled space, so this is exactly the [0, 2] log example translated by
+     * -60: the middle value scores 1/4, the existing ones 4/9.
+     */
+    @Test
+    void logScaleWorksWithVerySmallValues() {
+        try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
+             Session session = driver.session()) {
+            String scoreQuery = """
+WITH [[1e-60, 1.0], [1e-58, 1.0]] AS data, [1e-60, 1e-58] AS rng
+RETURN TSM_Statistics.scoreOfNewValue(1e-59, data, rng, 'log') AS score""";
+
+            assertThat(session.run(scoreQuery).single().get("score").asDouble())
+                    .isCloseTo(0.25, within(TOLERANCE));
+
+            String curveQuery = """
+WITH [[1e-60, 1.0], [1e-58, 1.0]] AS data, [1e-60, 1e-58] AS rng
+RETURN TSM_Statistics.generateScores(3, data, rng, 'log') AS curve""";
+
+            assertCurve(session, curveQuery, new double[][]{
+                    {-60.0, 1.0}, {-59.0, 0.0}, {-58.0, 1.0}});
+        }
+    }
+
+    /*
+     * A new curb crossed TWICE by the same old curb gets a DISCONNECTED envelope region:
+     * in log10 space the data hull is (1, -60) on (-110, -36) and (1, -12) on (-36, 0),
+     * and scoring 1e-12 a second time adds the shallower curb (0.5, -12), which wins far
+     * from both vertices. It crosses (1, -60) at -44 (opposite arms) and -108 (same-side
+     * arms), collected by allIntersections as [-44, -108]: processNewSegments pairs
+     * consecutive crossings, so they must be sorted — this pins the fix (unsorted, the
+     * Segment(-44, -108) construction throws "start must be smaller than end").
+     *   old integral: (24^3 + 50^3)/3 + (12^3 + 24^3)/3                      = 154376/3
+     *   new hull: (0.5, -12) on (-110, -108) and (-44, 0), (1, -60) on (-108, -44)
+     *   new integral: (98^3 - 96^3)/12 + (48^3 + 16^3)/3 + (32^3 + 12^3)/12 = 137426/3
+     */
     @Test
     void handlesDisconnectedEnvelopeRegions() {
         try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
-            Session session = driver.session()) {
+             Session session = driver.session()) {
             String query = """
 WITH [[1e-60, 1.0], [1e-12, 1.0]] AS data, [1e-110, 1.0] AS rng
 RETURN TSM_Statistics.scoreOfNewValue(1e-12, data, rng, 'log') AS score""";
+
             assertThat(session.run(query).single().get("score").asDouble())
                     .isCloseTo(137426. / 154376., within(TOLERANCE));
         }
     }
 
+    /*
+     * Mixed occurrences (1e-12 counted twice -> slope 1/2) make the hull itself hit the
+     * same two-crossings-from-one-curb pairing (this is the data2 call of the main()
+     * harness, which used to throw "start = -44 must be smaller than end = -108"). The
+     * built hull is (0.5, -12) on (-110, -108) and (-44, 0), (1, -60) on (-108, -44),
+     * with integral 137426/3. Scoring the new value 1e-30 (at -30, slope 1) crosses
+     * (1, -60) at -45 and (0.5, -12) at -24; its -48 crossing with (0.5, -12) falls
+     * outside that curb's segments and is correctly ignored. New hull:
+     *   (0.5, -12) on (-110, -108) and (-24, 0), (1, -60) on (-108, -45), (1, -30) on (-45, -24)
+     *   -> (98^3 - 96^3)/12 + (48^3 + 15^3)/3 + (15^3 + 6^3)/3 + (12^3 + 12^3)/12 = 132536/3.
+     */
     @Test
     void buildsMixedOccurrenceHullWithThreeCurbs() {
         try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
-            Session session = driver.session()) {
+             Session session = driver.session()) {
             String query = """
 WITH [[1e-60, 1.0], [1e-12, 2.0]] AS data, [1e-110, 1.0] AS rng
 RETURN TSM_Statistics.scoreOfNewValue(1e-30, data, rng, 'log') AS score""";
+
             assertThat(session.run(query).single().get("score").asDouble())
                     .isCloseTo(132536. / 137426., within(TOLERANCE));
+        }
+    }
+
+    /*
+     * Triple point, from the user's main() repro: scoring 0.2 a 15th time adds the curb
+     * (1/15, 0.2) to the curbs (1, 0.001), (1/14, 0.2 -> replaced), (1/9, 0.5), (1, 1) and
+     * (1, 3) on [0.0005, 6]. The new curb crosses (1/9, 0.5) at 31/80 AND at 19/20 — exactly
+     * the vertex of (1, 1): all three curbs meet there with value 1/20 (0.05), and the
+     * envelope switches directly from (1/9, 0.5) to (1, 1). So 19/20 must be skipped as a
+     * boundary-coincident crossing for BOTH old curbs — it is (1/9, 0.5)'s segment end and
+     * (1, 1)'s segment start (in doubles the crossing computes to 0.9500000000000001, one
+     * ulp off that boundary, so the skip needs ulp tolerance — see Hull.floatEqual). If it
+     * is kept even once, the pairing steals the neighbors' segments, they are deleted as
+     * superfluous, the tail piece [16/5, 6] is lost, and the hull fails verification with
+     * "ends do not match". The new curb's correct region is
+     * [43/3200, 31/80] U [37/35, 113/40] U [16/5, 6] — three disjoint pieces, the shallower
+     * curb winning far from both vertices.
+     * Exact-rational integrals: old = 0.32048227332781887, new = 0.279876619420443
+     * -> score = 0.87329828422104139 (verified with Fraction arithmetic).
+     */
+    @Test
+    void handlesTriplePointCrossing() {
+        try (Driver driver = GraphDatabase.driver(embeddedDatabaseServer.boltURI());
+             Session session = driver.session()) {
+            String query = """
+WITH [[0.001, 1.0], [0.2, 14.0], [0.5, 9.0], [1.0, 1.0], [3.0, 1.0]] AS data, [0.0005, 6.0] AS rng
+RETURN TSM_Statistics.scoreOfNewValue(0.2, data, rng) AS score""";
+
+            assertThat(session.run(query).single().get("score").asDouble())
+                    .isCloseTo(0.87329828422104139, within(TOLERANCE));
         }
     }
 

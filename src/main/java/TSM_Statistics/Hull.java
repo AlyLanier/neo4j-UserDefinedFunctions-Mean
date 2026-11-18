@@ -51,6 +51,17 @@ public class Hull {
             this.verifyValidity();
     }
 
+    /*
+    * Boundary-coincidence comparisons must tolerate a few ulps: the crossing and the
+    * segment boundary are computed by different rounding paths, so a crossing that lands
+    * exactly on a boundary in real arithmetic (a triple point: the new curb crossing an
+    * old curb exactly at a third curb's vertex) can be one ulp off in doubles, and an
+    * exact == would keep it, corrupting the segment pairing.
+    */
+    private static boolean floatEqual(double x, double y){
+        return Math.abs(x - y) <= 8. * Math.max(Math.ulp(x), Math.ulp(y));
+    }
+
     /* Getters and Setters */
 
     public Function<Double, Double> getReferenceFunction(){return this.referenceFunction;}
@@ -183,8 +194,14 @@ public class Hull {
     }
 
     private void verifyValidity(){
-        this.verifySlope();
-        this.verifyDefinedOnAllSegment();
+        try{
+            this.verifySlope();
+            this.verifyDefinedOnAllSegment(); 
+        }
+        catch (Exception e){
+            throw new RuntimeException(this.toString() + ": " + e.getMessage(), e);
+        }
+        
     }
 
     /* Complex adder */
@@ -227,11 +244,11 @@ public class Hull {
         
 
     private static boolean skipIntersectionConditionLeft(double intersection, Segment segment, boolean isSameSide, double previousCurbRoot, double newCurbRoot){
-        return intersection == segment.getStart() || (intersection == segment.getEnd() && (isSameSide || previousCurbRoot > newCurbRoot));
+        return floatEqual(intersection, segment.getStart()) || (floatEqual(intersection, segment.getEnd()) && (isSameSide || previousCurbRoot > newCurbRoot));
     }
                                           
     private static boolean skipIntersectionConditionRight(double intersection, Segment segment, boolean isSameSide, double previousCurbRoot, double newCurbRoot){
-        return intersection == segment.getEnd() || (intersection == segment.getStart() && (isSameSide || previousCurbRoot < newCurbRoot));
+        return floatEqual(intersection, segment.getEnd()) || (floatEqual(intersection, segment.getStart()) && (isSameSide || previousCurbRoot < newCurbRoot));
     }
 
     @FunctionalInterface
@@ -267,6 +284,12 @@ public class Hull {
                     double intersection = intersections.get(i);
                     for (Segment segment : segments) {
                         if (!segment.contains(intersection)) continue;
+
+                        // Unify a boundary-coincident crossing with the boundary: the boundary
+                        // is the value already shared with the neighboring curb, so the crossing
+                        // adopts it.
+                        if (floatEqual(intersection, segment.getStart()) && intersection != segment.getStart()) intersection = segment.getStart();
+                        else if (floatEqual(intersection, segment.getEnd()) && intersection != segment.getEnd()) intersection = segment.getEnd();
 
                         if (skipIntersectionCondition.apply(intersection, segment, i == 0, d, b)) {
                             continue;
@@ -321,12 +344,12 @@ public class Hull {
                     iSameside = intersects.get(1);
                     if (c < a) {
                         if (d < b) {
-                            if (segment.getEnd() != iSameside.value) {
+                            if (!floatEqual(segment.getEnd(), iSameside.value)) {
                                 this.addSubfunctionSegment(params, new Segment(iSameside.value, segment.getEnd()));
                             }
                             segment.setEnd(iOpposite.value);
                         } else {
-                            if (segment.getStart() != iSameside.value) {
+                            if (!floatEqual(segment.getStart(), iSameside.value)) {
                                 this.addSubfunctionSegment(params, new Segment(segment.getStart(), iSameside.value));
                             }
                             segment.setStart(iOpposite.value);
@@ -602,5 +625,9 @@ public class Hull {
             return this;
         }
 
+    }
+
+    public static void pp(Object o){
+        System.out.println(o);
     }
 }
