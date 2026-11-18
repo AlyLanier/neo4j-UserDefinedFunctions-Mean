@@ -76,7 +76,8 @@ public class ScoreFunctions {
         try {
             return dataHull.getHull().scoreOfNewCurb(newCurb);
         } catch (Exception e) {
-            throw new RuntimeException("score computation failed: " + e.getMessage(), e);
+
+            throw new RuntimeException("score computation failed: " + dataHull.getHull().toString() + " with new curb = " + newCurb.toString() + e.getMessage(), e);
         }
     }
 
